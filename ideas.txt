@@ -1,0 +1,22 @@
+
+
+###
+
+Timer -> move to requestAnimationFrame()
+
+Where to place the timer? it should replace the while loop.
+
+How does it work?
+
+Draw function <- stepper motors <- micro:bit
+
+stepper motors <- pulse outputs <- micro:bit
+
+2 outputs per motor  -> 1 direction pulse / 1 strength pulse
+
+While {
+    Draw
+    stepper
+    pulse
+    
+}
