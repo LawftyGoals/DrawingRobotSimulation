@@ -1,123 +1,125 @@
 
+const display = {
+    ctx: undefined,
+    otx: undefined,
+    canvasHeight: 540,
+    canvasWidth: 720
+}
 
+const animation = {
+    previousTimestamp: undefined,
+    stepSize: 1,
+    pulseInterval: 500,
+    penDown: true
+}
 
-const canvasHeight = 540;
-const canvasWidth = 720;
-const stepSize = 1;
+const limbPosition = { x: 0, y: 0 };
 
-const pulseInterval = 500;
-
-let previousTimestamp;
-
-let penDown = true;
 //let targetIndex = 0;
 const targetPoint = [{ x: 150, y: 300 }, { x: 300, y: 300 }, { x: 325, y: 400 }] //{ x: Math.floor(canvasWidth / 2), y: Math.floor(canvasHeight / 2) };
-let limbPosition = { x: 0, y: 0 };
 
 function main() {
 
     const canvas = document.getElementById("base");
     const overlayCanvas = document.getElementById("overlay");
 
-    canvas.height = canvasHeight;
-    canvas.width = canvasWidth;
+    canvas.height = display.canvasHeight;
+    canvas.width = display.canvasWidth;
 
-    overlayCanvas.height = canvasHeight;
-    overlayCanvas.width = canvasWidth;
+    overlayCanvas.height = display.canvasHeight;
+    overlayCanvas.width = display.canvasWidth;
 
     if (canvas.getContext) {
-        const ctx = canvas.getContext("2d");
-        const otx = overlayCanvas.getContext("2d");
-        initialDraw(ctx, otx);
-        window.requestAnimationFrame((t) => draw(t, ctx, otx));
+        display.ctx = canvas.getContext("2d");
+        display.otx = overlayCanvas.getContext("2d");
+
+        initialDraw();
+
+        window.requestAnimationFrame((t) => draw(t));
 
     }
 }
 
-function initialDraw(ctx, otx) {
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
-    ctx.beginPath();
+function initialDraw() {
+    display.ctx.lineWidth = 2;
+    display.ctx.lineCap = "round";
+    display.ctx.beginPath();
 
-    otx.fillStyle = "rgb(50 200 0 / 20%)";
-    otx.fillRect(...verticalLimb(limbPosition.x));
-    otx.fillRect(...horizontalLimb(limbPosition.y));
+    display.otx.fillStyle = "rgb(50 200 0 / 20%)";
+    display.otx.fillRect(...verticalLimb(limbPosition.x));
+    display.otx.fillRect(...horizontalLimb(limbPosition.y));
 
-    otx.fillStyle = "rgb(0 0 0 / 20%)";
-    otx.fillRect(limbPosition.x, limbPosition.y, 16, 16);
+    display.otx.fillStyle = "rgb(0 0 0 / 20%)";
+    display.otx.fillRect(limbPosition.x, limbPosition.y, 16, 16);
 
 }
 
-function draw(timestamp, ctx, otx) {
-    if (previousTimestamp === undefined) previousTimestamp = timestamp;
+function draw(timestamp) {
+    if (animation.previousTimestamp === undefined) animation.previousTimestamp = timestamp;
 
-    const elapsed = timestamp - previousTimestamp;
+    const elapsed = timestamp - animation.previousTimestamp;
 
 
-    if (elapsed >= pulseInterval) {
-        otx.clearRect(0, 0, canvasWidth, canvasHeight)
-
+    if (elapsed >= animation.pulseInterval) {
+        display.otx.clearRect(0, 0, display.canvasWidth, display.canvasHeight)
         turnStepperMotors(limbPosition);
-
-        drawLimbs(otx, limbPosition);
-
-        if (penDown) drawTo(limbPosition, ctx);
+        drawLimbs(limbPosition);
+        if (animation.penDown) drawTo(limbPosition);
     }
 
 
-    if ((limbPosition.y === targetPoint[0].y && limbPosition.x === targetPoint[0].x) || limbPosition.x >= canvasWidth || limbPosition.y >= canvasHeight) {
-        ctx.stroke();
-        ctx.closePath();
-
+    if ((limbPosition.y === targetPoint[0].y && limbPosition.x === targetPoint[0].x) || limbPosition.x >= display.canvasWidth || limbPosition.y >= display.canvasHeight) {
+        display.ctx.stroke();
+        display.ctx.closePath();
     } else {
-        window.requestAnimationFrame((t) => (draw(t, ctx, otx)));
+        window.requestAnimationFrame((t) => (draw(t)));
 
     }
 }
 
-function drawLimbs(otx, limbPosition) {
-    otx.fillStyle = "rgb(50 200 0 / 20%)";
-    otx.fillRect(...verticalLimb(limbPosition.x));
-    otx.fillRect(...horizontalLimb(limbPosition.y));
+function drawLimbs() {
+    display.otx.fillStyle = "rgb(50 200 0 / 20%)";
+    display.otx.fillRect(...verticalLimb(limbPosition.x));
+    display.otx.fillRect(...horizontalLimb(limbPosition.y));
 
-    otx.fillStyle = "rgb(0 0 0 / 20%)";
-    otx.fillRect(limbPosition.x, limbPosition.y, 16, 16);
-
-}
-
-function drawTo(position, ctx) {
-
-    ctx.lineTo(position.x + 8, position.y + 8);
-    ctx.stroke();
+    display.otx.fillStyle = "rgb(0 0 0 / 20%)";
+    display.otx.fillRect(limbPosition.x, limbPosition.y, 16, 16);
 
 }
 
-function horizontalLimb(position) {
-    const y = position;
+function drawTo() {
+
+    display.ctx.lineTo(limbPosition.x + 8, limbPosition.y + 8);
+    display.ctx.stroke();
+
+}
+
+function horizontalLimb() {
+    const y = limbPosition.y;
     const x = 0;
 
-    const width = canvasWidth;
+    const width = display.canvasWidth;
     const height = 16;
 
     return [x, y, width, height];
 
 }
 
-function verticalLimb(position) {
+function verticalLimb() {
     const y = 0;
-    const x = position;
+    const x = limbPosition.x;
 
     const width = 16;
-    const height = canvasHeight;
+    const height = display.canvasHeight;
 
     return [x, y, width, height];
 
 }
 
 
-function turnStepperMotors(limbPosition) {
+function turnStepperMotors() {
 
-    const pulse = pulseGenerator(limbPosition);
+    const pulse = pulseGenerator();
 
     limbPosition.x += pulse.x ? getDirectionOfTurn(pulse.xDirection) : 0;
     limbPosition.y += pulse.y ? getDirectionOfTurn(pulse.yDirection) : 0;
@@ -125,11 +127,10 @@ function turnStepperMotors(limbPosition) {
 }
 
 function getDirectionOfTurn(direction) {
-    return direction ? stepSize : -stepSize;
+    return direction ? animation.stepSize : -animation.stepSize;
 }
 
 function pulseGenerator() {
-
     return { x: true, xDirection: true, y: true, yDirection: true };
 }
 
