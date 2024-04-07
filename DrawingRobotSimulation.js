@@ -46,8 +46,8 @@ function initialDraw() {
     display.ctx.beginPath();
 
     display.otx.fillStyle = "rgb(50 200 0 / 20%)";
-    display.otx.fillRect(...verticalLimb(limbPosition.x));
-    display.otx.fillRect(...horizontalLimb(limbPosition.y));
+    display.otx.fillRect(...verticalLimb());
+    display.otx.fillRect(...horizontalLimb());
 
     display.otx.fillStyle = "rgb(0 0 0 / 20%)";
     display.otx.fillRect(limbPosition.x, limbPosition.y, 16, 16);
@@ -62,9 +62,9 @@ function draw(timestamp) {
 
     if (elapsed >= animation.pulseInterval) {
         display.otx.clearRect(0, 0, display.canvasWidth, display.canvasHeight)
-        turnStepperMotors(limbPosition);
-        drawLimbs(limbPosition);
-        if (animation.penDown) drawTo(limbPosition);
+        turnStepperMotors();
+        drawLimbs();
+        if (animation.penDown) drawTo();
     }
 
 
@@ -77,6 +77,7 @@ function draw(timestamp) {
     }
 }
 
+
 function drawLimbs() {
     display.otx.fillStyle = "rgb(50 200 0 / 20%)";
     display.otx.fillRect(...verticalLimb(limbPosition.x));
@@ -87,8 +88,16 @@ function drawLimbs() {
 
 }
 
-function drawTo() {
+function raisePen() {
+    animation.penDown = false;
+    display.otx.beginPath();
+}
 
+function lowerPen() {
+    animation.penDown = true;
+}
+
+function drawTo() {
     display.ctx.lineTo(limbPosition.x + 8, limbPosition.y + 8);
     display.ctx.stroke();
 
