@@ -10,10 +10,11 @@ const animation = {
     previousTimestamp: undefined,
     stepSize: 1,
     pulseInterval: 500,
+    pulseMultiplier: 1,
     penDown: true
 }
 
-const limbPosition = { x: 0, y: 0 };
+const limbPosition = { x: 0, y: 0, xDirection: 1, yDirection: 1 };
 
 //let targetIndex = 0;
 const targetPoint = [{ x: 150, y: 300 }, { x: 300, y: 300 }, { x: 325, y: 400 }] //{ x: Math.floor(canvasWidth / 2), y: Math.floor(canvasHeight / 2) };
@@ -35,8 +36,8 @@ function main() {
 
         initialDraw();
 
-        window.requestAnimationFrame((t) => draw(t));
-
+        //window.requestAnimationFrame((t) => draw(t));
+        runSteppersBresenham(targetPoint[0].x, targetPoint[0].y);
     }
 }
 
@@ -61,8 +62,8 @@ function draw(timestamp) {
 
 
     if (elapsed >= animation.pulseInterval) {
-        display.otx.clearRect(0, 0, display.canvasWidth, display.canvasHeight)
-        turnStepperMotors();
+        display.otx.clearRect(0, 0, display.canvasWidth, display.canvasHeight);
+        turnStepperMotors(1, 1);
         drawLimbs();
         if (animation.penDown) drawTo();
     }
@@ -75,6 +76,24 @@ function draw(timestamp) {
         window.requestAnimationFrame((t) => (draw(t)));
 
     }
+}
+
+function drawInFunction() {
+    clearOtx();
+    drawLimbs();
+    if (animation.penDown) drawTo();
+
+}
+
+function endDraw() {
+    if ((limbPosition.y === targetPoint[0].y && limbPosition.x === targetPoint[0].x) || limbPosition.x >= display.canvasWidth || limbPosition.y >= display.canvasHeight) {
+        display.ctx.stroke();
+        display.ctx.closePath();
+    }
+}
+
+function clearOtx() {
+    display.otx.clearRect(0, 0, display.canvasWidth, display.canvasHeight);
 }
 
 
@@ -126,12 +145,10 @@ function verticalLimb() {
 }
 
 
-function turnStepperMotors() {
+function turnStepperMotors(x, y) {
 
-    const pulse = pulseGenerator();
-
-    limbPosition.x += pulse.x ? getDirectionOfTurn(pulse.xDirection) : 0;
-    limbPosition.y += pulse.y ? getDirectionOfTurn(pulse.yDirection) : 0;
+    limbPosition.x += animation.pulseMultiplier * x * limbPosition.yDirection;
+    limbPosition.y += animation.pulseMultiplier * y * limbPosition.yDirection;
 
 }
 
@@ -148,57 +165,110 @@ function pulseGenerator() {
 function moveTo() {
     let x_steps = targetX / (xCalibration / 10000);
     let y_steps = targetY / (yCalibration / 10000);
-
+ 
     x = Math.round(x_steps);
     y = Math.round(y_steps);
-
+ 
     runSteppersBresenham(x_steps, y_steps);
+ 
+}
+*/
+
+const bresenham = {
+    err: 0,
+
+    x0: 0,
+    y0: 0,
+
+    x1: 0,
+    y1: 0,
+
+    dx: 0,
+    dy: 0,
+
+    sx: 0,
+    sy: 0,
+
+    x_step: 0,
+    y_step: 0
 
 }
-
 
 
 function runSteppersBresenham(targetX, targetY) {
-    x1 = targetX;
-    y1 = targetY;
+    bresenham.x1 = Math.round(targetX);
+    bresenham.y1 = Math.round(targetY);
 
-    dx = Math.abs(x1 - x0);
-    dy = -Math.abs(y1 - y0);
+    bresenham.dx = Math.abs(bresenham.x1 - bresenham.x0);
+    bresenham.dy = -Math.abs(bresenham.y1 - bresenham.y0);
 
-    sx = x0 < x1 ? 1 : -1;
-    sy = y0 < y1 ? 1 : -1;
+    bresenham.sx = bresenham.x0 < bresenham.x1 ? 1 : -1;
+    bresenham.sy = bresenham.y0 < bresenham.y1 ? 1 : -1;
 
-    while (bresenhamAlgorithm()) {
+
+    window.requestAnimationFrame((t) => animate(t));
+}
+
+function animate(timestamp) {
+
+    if (animation.previousTimestamp === undefined) animation.previousTimestamp = timestamp;
+    const elapsed = timestamp - animation.previousTimestamp;
+
+    if (elapsed >= animation.pulseInterval && bresenhamAlgorithm()) {
+
+        if (bresenham.x_step < 0) {
+            limbPosition.xDirection = -1;
+        } else {
+            limbPosition.xDirection = 1;
+        }
+
+        if (bresenham.y_step < 0) {
+            limbPosition.yDirection = -1;
+        } else {
+            limbPosition.yDirection = 1;
+        }
+
+        turnStepperMotors(Math.abs(bresenham.x_step), Math.abs(bresenham.y_step))
+        drawInFunction();
+
+        if (animation.penDown) drawTo();
+    }
+
+    if ((limbPosition.y === targetPoint[0].y && limbPosition.x === targetPoint[0].x) || limbPosition.x >= display.canvasWidth || limbPosition.y >= display.canvasHeight) {
+        endDraw();
+    } else {
+        window.requestAnimationFrame((t) => (animate(t)));
 
     }
 
 
 }
 
-function bresenhamAlgorith() {
-    err2 = 2 * err;
-    x_step = 0;
-    y_step = 0;
 
-    if (x0 === x1 && y0 === y1) {
+function bresenhamAlgorithm() {
+    const err2 = 2 * bresenham.err;
+    bresenham.x_step = 0;
+    bresenham.y_step = 0;
+
+    if (bresenham.x0 === bresenham.x1 && bresenham.y0 === bresenham.y1) {
         return false;
     }
-    if (err2 >= dy) {
-        if (x0 === x1) {
+    if (err2 >= bresenham.dy) {
+        if (limbPosition.x === bresenham.x1) {
             return false;
         }
         // Update step and error
-        err = err + dy;
-        x0 = x0 + sx;
-        x_step = sx;
+        bresenham.err = bresenham.err + bresenham.dy;
+        bresenham.x0 = bresenham.x0 + bresenham.sx;
+        bresenham.x_step = bresenham.sx;
     }
-    if (err2 <= dx) {
-        if (y0 === y1) {
+    if (err2 <= bresenham.dx) {
+        if (bresenham.y0 === bresenham.y1) {
             return false;
         }
-        err = err + dx;
-        y0 = y0 + sy;
-        y_step = sy;
+        bresenham.err = bresenham.err + bresenham.dx;
+        bresenham.y0 = bresenham.y0 + bresenham.sy;
+        bresenham.y_step = bresenham.sy;
     }
 
     return true;
@@ -226,7 +296,7 @@ void runSteppersBres(int targetX, int targetY) {
     else {
         sy = -1;
     }
-
+ 
     // Initializes the steps.
     isDrawing = bresenham(); // Updates global variables dx, dy to either +1, -1 or 0 for a step or not.
     // Start loop with intervals
@@ -274,7 +344,7 @@ void runSteppersBres(int targetX, int targetY) {
                 isDrawing = bresenham();
             }
         }
-
+ 
     } // END while (isDrawing)
     /*
     Serial.println("Finished line");
@@ -289,10 +359,10 @@ void runSteppersBres(int targetX, int targetY) {
   bool bresenham() {
     // Calculates steps in x and y directions. 0, -1 or 1
     // Updates global variables dx, dy, and error variable err.
-
-
+ 
+ 
 }
-
+ 
 void setAbsoluteCoordinates(float x_mm, float y_mm) {
     // Sets pixel values x0 and y0 from millimeter coordinates.
     float x_steps = x_mm / (xCalibration / 5000);
@@ -302,7 +372,7 @@ void setAbsoluteCoordinates(float x_mm, float y_mm) {
     String str4 = "Head position after manual override: x0,y0: " + String(x0) + "," + String(y0);
     Serial.println(str4);
 }
-
+ 
 */
 
 main();
