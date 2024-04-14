@@ -15,7 +15,7 @@ const animation = {
     targetPointIndex: 0,
     running: true,
     perviousPoint: { x: 0, y: 0 },
-    targetPoints: [{ x: 150, y: 300 }, { x: 300, y: 300 }, { x: 325, y: 400 }]
+    targetPoints: [{ x: 150, y: 300 }, { x: 300, y: 300 }, { x: 325, y: 400 }, { x: 50, y: 50 }, { x: 75, y: 150 }, { x: 300, y: 300 }, { x: 325, y: 400 }, { x: 400, y: 400 }]
 }
 
 const limbPosition = { x: 0, y: 0, xDirection: 1, yDirection: 1 };
@@ -23,21 +23,8 @@ const limbPosition = { x: 0, y: 0, xDirection: 1, yDirection: 1 };
 const bresenham = {
     err: 0,
 
-    x0: 0,
-    y0: 0,
-
-    x1: 0,
-    y1: 0,
-
     dx: 0,
     dy: 0,
-
-    sx: 0,
-    sy: 0,
-
-    x_step: 0,
-    y_step: 0
-
 }
 
 function main() {
@@ -93,9 +80,7 @@ function mainLoop(timeStamp) {
 
         if (timeStamp >= animation.pulseInterval) {
 
-
             const err2 = 2 * bresenham.err;
-            console.log(machine.direction);
 
             if (err2 >= bresenham.dy) {
                 bresenham.err = bresenham.err + bresenham.dy;
@@ -111,8 +96,12 @@ function mainLoop(timeStamp) {
                     turnStepperY();
                 }
             }
+            console.log(machine.currentPosition);
+
             drawInFunction();
+
         }
+
         window.requestAnimationFrame((t) => mainLoop(t));
     }
 
@@ -120,6 +109,7 @@ function mainLoop(timeStamp) {
 }
 
 function updateParameters() {
+
     if (animation.targetPointIndex < animation.targetPoints.length - 1) {
         animation.targetPointIndex++;
         setupBresenhamForPoint();
@@ -127,6 +117,7 @@ function updateParameters() {
         if (animation.targetPointIndex > 0 && !animation.penDown) {
             lowerPen();
         }
+        console.log(bresenham.dx, bresenham.dy, bresenham.err);
     } else {
         animation.running = false;
     }
@@ -136,6 +127,7 @@ function setupBresenhamForPoint() {
 
     bresenham.dx = Math.abs(animation.targetPoints[animation.targetPointIndex].x - machine.currentPosition.x);
     bresenham.dy = -Math.abs(animation.targetPoints[animation.targetPointIndex].y - machine.currentPosition.y);
+    bresenham.err = 0;
 
 }
 
