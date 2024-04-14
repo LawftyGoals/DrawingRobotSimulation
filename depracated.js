@@ -147,3 +147,101 @@ function moveTo() {
  
 }
 */
+
+
+
+function turnStepperMotors(x, y) {
+
+    limbPosition.x += animation.pulseMultiplier * x * limbPosition.yDirection;
+    limbPosition.y += animation.pulseMultiplier * y * limbPosition.yDirection;
+
+}
+
+
+
+
+function runAlgorithm(targetPoints) {
+
+    const { x: targetX, y: targetY } = targetPoints[0];
+
+    bresenham.x1 = Math.round(targetX);
+    bresenham.y1 = Math.round(targetY);
+
+    bresenham.dx = Math.abs(bresenham.x1 - bresenham.x0);
+    bresenham.dy = -Math.abs(bresenham.y1 - bresenham.y0);
+
+    bresenham.sx = bresenham.x0 < bresenham.x1 ? 1 : -1;
+    bresenham.sy = bresenham.y0 < bresenham.y1 ? 1 : -1;
+
+
+    window.requestAnimationFrame((t) => animate(t));
+}
+
+function animate(timestamp) {
+
+    if (animation.previousTimestamp === undefined) animation.previousTimestamp = timestamp;
+    const elapsed = timestamp - animation.previousTimestamp;
+
+    if (elapsed >= animation.pulseInterval && bresenhamAlgorithm()) {
+
+        if (bresenham.x_step < 0) {
+            limbPosition.xDirection = -1;
+        } else {
+            limbPosition.xDirection = 1;
+        }
+
+        if (bresenham.y_step < 0) {
+            limbPosition.yDirection = -1;
+        } else {
+            limbPosition.yDirection = 1;
+        }
+
+        turnStepperMotors(Math.abs(bresenham.x_step), Math.abs(bresenham.y_step))
+        drawInFunction();
+
+        if (animation.penDown) drawTo();
+    }
+
+    if ((limbPosition.y === animation.targetPoints[0].y && limbPosition.x === animation.targetPoints[0].x) || limbPosition.x >= display.canvasWidth || limbPosition.y >= display.canvasHeight) {
+        endDraw();
+    } else {
+        window.requestAnimationFrame((t) => (animate(t)));
+
+    }
+
+
+}
+
+
+function bresenhamAlgorithm() {
+    const err2 = 2 * bresenham.err;
+    bresenham.x_step = 0;
+    bresenham.y_step = 0;
+
+    if (bresenham.x0 === bresenham.x1 && bresenham.y0 === bresenham.y1) {
+        return false;
+    }
+    if (err2 >= bresenham.dy) {
+
+        bresenham.err = bresenham.err + bresenham.dy;
+        if (bresenham.x0 === bresenham.x1) {
+            return false;
+        }
+        // Update step and error
+
+        if (bresenham.x0 !== bresenham.x1) {
+            bresenham.x0 = bresenham.x0 + bresenham.sx;
+            bresenham.x_step = bresenham.sx;
+        }
+    }
+    if (err2 <= bresenham.dx) {
+        if (bresenham.y0 === bresenham.y1) {
+            return false;
+        }
+        bresenham.err = bresenham.err + bresenham.dx;
+        bresenham.y0 = bresenham.y0 + bresenham.sy;
+        bresenham.y_step = bresenham.sy;
+    }
+
+    return true;
+}
