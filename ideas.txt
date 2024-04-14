@@ -20,3 +20,14 @@ While {
     pulse
     
 }
+
+Ok so setup:
+
+{
+    object containing all necessary data, part of this will be the array of points or paths that are necessary
+}
+
+function draw() {
+    A while loop that
+    that takes the ncessary function as an argument and continues to run until it hits a point, then updates what direction it is going in.
+}
