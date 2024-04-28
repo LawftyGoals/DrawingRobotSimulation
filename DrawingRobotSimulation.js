@@ -19,16 +19,11 @@ const animation = {
   targetPointIndex: 0,
   running: true,
   perviousPoint: { x: 0, y: 0 },
+  figureIndex: 0,
+  figureNumberOfIndexes: 0,
   figureStack: [],
   targetPoints: [...makeSquare(200, 50), ...makeSquare(100, 50)],
   targetPoint: { x: 0, y: 0 },
-};
-
-const targetPointSquare = {
-  origin: { x: null, y: null },
-  size: null,
-  rotationA: null,
-  caculatePointFromIndex: (index) => {},
 };
 
 function tPSquare(xPosition, yPosition, size, rotation = 1) {
@@ -37,18 +32,20 @@ function tPSquare(xPosition, yPosition, size, rotation = 1) {
   this.rotation = rotation;
   this.numberOfIndexes = 5;
 
+  animation.figureNumberOfIndexes = this.numberOfIndexes;
+
   const halfSize = this.size * 0.5;
 
   this.calculatePointFromIndex = (index) => {
     switch (index) {
-      case 0:
-        return { x: this.origin.x - halfSize, y: this.origin.y - halfSize };
       case 1:
         return { x: this.origin.x + halfSize, y: this.origin.y - halfSize };
       case 2:
         return { x: this.origin.x + halfSize, y: this.origin.y + halfSize };
       case 3:
         return { x: this.origin.x - halfSize, y: this.origin.y + halfSize };
+      default:
+        return { x: this.origin.x - halfSize, y: this.origin.y - halfSize };
     }
   };
 }
@@ -102,10 +99,6 @@ function main() {
     display.otx = overlayCanvas.getContext("2d");
 
     initialDraw();
-
-    //window.requestAnimationFrame((t) => draw(t));
-    //runAlgorithm(animation.targetPoints);
-
     onStartup();
     window.requestAnimationFrame((t) => mainLoop(t));
   }
@@ -122,21 +115,21 @@ function turnStepperY() {
 function onStartup() {
   animation.figureStack.push(new tPSquare(200, 200, 100));
 
+  setNewTargetPoint();
+
   checkFigureStack();
 
   setupBresenhamForPoint();
 }
 
 function checkFigureStack() {
-  animation.running = !!animation.figureStack.length;
+  animation.running = animation.figureStack.length > 0;
 }
 
 function mainLoop(timeStamp) {
   if (
-    machine.currentPosition.x ===
-      animation.targetPoints[animation.targetPointIndex].x &&
-    machine.currentPosition.y ===
-      animation.targetPoints[animation.targetPointIndex].y
+    machine.currentPosition.x === animation.targetPoint.x &&
+    machine.currentPosition.y === animation.targetPoint.y
   ) {
     updateParameters();
   }
@@ -148,20 +141,14 @@ function mainLoop(timeStamp) {
       if (err2 >= bresenham.dy) {
         bresenham.err = bresenham.err + bresenham.dy;
 
-        if (
-          machine.currentPosition.x !==
-          animation.targetPoints[animation.targetPointIndex].x
-        ) {
+        if (machine.currentPosition.x !== animation.targetPoint.x) {
           turnStepperX();
         }
       }
       if (err2 <= bresenham.dx) {
         bresenham.err = bresenham.err + bresenham.dx;
 
-        if (
-          machine.currentPosition.y !==
-          animation.targetPoints[animation.targetPointIndex].y
-        ) {
+        if (machine.currentPosition.y !== animation.targetPoint.y) {
           turnStepperY();
         }
       }
@@ -175,8 +162,9 @@ function mainLoop(timeStamp) {
 }
 
 function updateParameters() {
-  if (animation.targetPointIndex < animation.targetPoints.length - 1) {
+  if (animation.targetPointIndex < animation.figureNumberOfIndexes - 1) {
     animation.targetPointIndex++;
+    setNewTargetPoint();
     setupBresenhamForPoint();
     changeDirection();
     if (animation.targetPointIndex > 0 && !animation.penDown) {
@@ -188,22 +176,20 @@ function updateParameters() {
   }
 }
 
+function setNewTargetPoint() {
+  animation.targetPoint = animation.figureStack[
+    animation.figureIndex
+  ].calculatePointFromIndex(animation.targetPointIndex);
+}
+
 function setupBresenhamForPoint() {
-  bresenham.dx = Math.abs(
-    animation.targetPoints[animation.targetPointIndex].x -
-      machine.currentPosition.x
-  );
-  bresenham.dy = -Math.abs(
-    animation.targetPoints[animation.targetPointIndex].y -
-      machine.currentPosition.y
-  );
+  bresenham.dx = Math.abs(animation.targetPoint.x - machine.currentPosition.x);
+  bresenham.dy = -Math.abs(animation.targetPoint.y - machine.currentPosition.y);
   bresenham.err = bresenham.dx + bresenham.dy;
 }
 
 function changeDirection() {
-  const xDifference =
-    animation.targetPoints[animation.targetPointIndex].x >=
-    machine.currentPosition.x;
+  const xDifference = animation.targetPoint.x >= machine.currentPosition.x;
 
   if (xDifference && machine.direction.x === -1) {
     machine.direction.x = machine.direction.x * -1;
@@ -212,9 +198,7 @@ function changeDirection() {
     machine.direction.x = machine.direction.x * -1;
   }
 
-  const yDifference =
-    animation.targetPoints[animation.targetPointIndex].y >=
-    machine.currentPosition.y;
+  const yDifference = animation.targetPoint.y >= machine.currentPosition.y;
 
   if (yDifference && machine.direction.y === -1) {
     machine.direction.y = machine.direction.y * -1;
