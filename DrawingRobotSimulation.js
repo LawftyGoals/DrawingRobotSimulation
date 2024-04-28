@@ -19,8 +19,39 @@ const animation = {
   targetPointIndex: 0,
   running: true,
   perviousPoint: { x: 0, y: 0 },
-  targetPoints: [...makeSquare(200, 50)],
+  figureStack: [],
+  targetPoints: [...makeSquare(200, 50), ...makeSquare(100, 50)],
+  targetPoint: { x: 0, y: 0 },
 };
+
+const targetPointSquare = {
+  origin: { x: null, y: null },
+  size: null,
+  rotationA: null,
+  caculatePointFromIndex: (index) => {},
+};
+
+function tPSquare(origin, size, rotation = 1) {
+  this.origin = origin;
+  this.size = size;
+  this.rotation = rotation;
+  this.numberOfIndexes = 5;
+
+  const halfSize = this.size * 0.5;
+
+  this.calculatePointFromIndex = (index) => {
+    switch (index) {
+      case 0:
+        return { x: this.origin - halfSize, y: this.origin - halfSize };
+      case 1:
+        return { x: this.origin + halfSize, y: this.origin - halfSize };
+      case 2:
+        return { x: this.origin + halfSize, y: this.origin + halfSize };
+      case 3:
+        return { x: this.origin - halfSize, y: this.origin + halfSize };
+    }
+  };
+}
 
 /* TEST ARRAY:
 ,
@@ -32,18 +63,20 @@ const animation = {
     { x: 300, y: 300 },
     { x: 325, y: 400 },
     { x: 400, y: 400 },
-    */
+
+*/
 
 const bresenham = {
   err: 0,
-
   dx: 0,
   dy: 0,
 };
 
 function makeSquare(position, sideLength) {
-  const furtherByHalf = position + sideLength / 2;
-  const closerByHalf = position - sideLength / 2;
+  const sideLengthEvenizer = (sideL) => (sideL % 2 === 0 ? sideL : sideL + 1);
+
+  const furtherByHalf = position + sideLengthEvenizer(sideLength) / 2;
+  const closerByHalf = position - sideLengthEvenizer(sideLength) / 2;
 
   return [
     { x: closerByHalf, y: closerByHalf },
@@ -79,11 +112,11 @@ function main() {
 }
 
 function turnStepperX() {
-  machine.currentPosition.x += machine.direction.x;
+  machine.currentPosition.x += machine.direction.x * animation.stepSize;
 }
 
 function turnStepperY() {
-  machine.currentPosition.y += machine.direction.y;
+  machine.currentPosition.y += machine.direction.y * animation.stepSize;
 }
 
 function onStartup() {
