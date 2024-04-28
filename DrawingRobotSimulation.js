@@ -50,6 +50,24 @@ function tPSquare(xPosition, yPosition, size, rotation = 1) {
   };
 }
 
+function tPCircle(xPosition, yPosition, radius, fidelity = 36) {
+  this.origin = { x: xPosition, y: yPosition };
+  this.radius = radius;
+  this.numberOfIndexes = fidelity + 1;
+
+  this.stepSize = 360 / fidelity;
+  this.step = (Math.PI / 180) * this.stepSize;
+
+  animation.figureNumberOfIndexes = this.numberOfIndexes;
+
+  this.calculatePointFromIndex = (index) => {
+    return {
+      x: Math.round(Math.cos(index * this.step) * this.radius) + this.origin.x,
+      y: Math.round(Math.sin(index * this.step) * this.radius) + this.origin.y,
+    };
+  };
+}
+
 /* TEST ARRAY:
 ,
     { x: 150, y: 300 },
@@ -113,9 +131,18 @@ function turnStepperY() {
 }
 
 function onStartup() {
-  animation.figureStack.push(new tPSquare(200, 200, 100));
+  animation.figureStack.push(
+    new tPSquare(200, 200, 100),
+    new tPCircle(200, 100, 50),
+    new tPCircle(200, 300, 50),
+    new tPCircle(100, 200, 50),
+    new tPCircle(300, 200, 50)
+  );
+  animation.figureStack.push(new tPCircle(200, 200, 50));
 
   setNewTargetPoint();
+
+  console.log(animation.targetPoint);
 
   checkFigureStack();
 
@@ -152,8 +179,7 @@ function mainLoop(timeStamp) {
           turnStepperY();
         }
       }
-      console.log(machine.currentPosition);
-
+      console.log(machine.currentPosition, animation.targetPoint);
       drawInFunction();
     }
 
@@ -170,9 +196,14 @@ function updateParameters() {
     if (animation.targetPointIndex > 0 && !animation.penDown) {
       lowerPen();
     }
-    console.log(bresenham.dx, bresenham.dy, bresenham.err);
   } else {
-    animation.running = false;
+    raisePen();
+    if (animation.figureIndex < animation.figureStack.length - 1) {
+      animation.targetPointIndex = -1;
+      animation.figureIndex++;
+    } else {
+      animation.running = false;
+    }
   }
 }
 
@@ -264,11 +295,12 @@ function drawLimbs() {
 
 function raisePen() {
   animation.penDown = false;
-  display.otx.beginPath();
+  display.ctx.beginPath();
 }
 
 function lowerPen() {
   animation.penDown = true;
+  display.ctx.beginPath();
 }
 
 function drawTo() {
