@@ -31,8 +31,8 @@ const targetPointSquare = {
   caculatePointFromIndex: (index) => {},
 };
 
-function tPSquare(origin, size, rotation = 1) {
-  this.origin = origin;
+function tPSquare(xPosition, yPosition, size, rotation = 1) {
+  this.origin = { x: xPosition, y: yPosition };
   this.size = size;
   this.rotation = rotation;
   this.numberOfIndexes = 5;
@@ -42,13 +42,13 @@ function tPSquare(origin, size, rotation = 1) {
   this.calculatePointFromIndex = (index) => {
     switch (index) {
       case 0:
-        return { x: this.origin - halfSize, y: this.origin - halfSize };
+        return { x: this.origin.x - halfSize, y: this.origin.y - halfSize };
       case 1:
-        return { x: this.origin + halfSize, y: this.origin - halfSize };
+        return { x: this.origin.x + halfSize, y: this.origin.y - halfSize };
       case 2:
-        return { x: this.origin + halfSize, y: this.origin + halfSize };
+        return { x: this.origin.x + halfSize, y: this.origin.y + halfSize };
       case 3:
-        return { x: this.origin - halfSize, y: this.origin + halfSize };
+        return { x: this.origin.x - halfSize, y: this.origin.y + halfSize };
     }
   };
 }
@@ -120,7 +120,15 @@ function turnStepperY() {
 }
 
 function onStartup() {
+  animation.figureStack.push(new tPSquare(200, 200, 100));
+
+  checkFigureStack();
+
   setupBresenhamForPoint();
+}
+
+function checkFigureStack() {
+  animation.running = !!animation.figureStack.length;
 }
 
 function mainLoop(timeStamp) {
