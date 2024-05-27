@@ -1,3 +1,5 @@
+//import { drawSquare } from "./drawSquare.js";
+
 const display = {
   ctx: undefined,
   otx: undefined,
@@ -11,10 +13,11 @@ const machine = {
 };
 
 const animation = {
-  previousTimestamp: undefined,
+  previousTimestamp: 0,
   stepSize: 1,
-  pulseInterval: 500,
+  pulseInterval: 5,
   pulseMultiplier: 1,
+  pulseHigh: 0,
   penDown: false,
   targetPointIndex: 0,
   running: true,
@@ -22,11 +25,81 @@ const animation = {
   figureIndex: 0,
   figureNumberOfIndexes: 0,
   figureStack: [],
-  targetPoints: [...makeSquare(200, 50), ...makeSquare(100, 50)],
   targetPoint: { x: 0, y: 0 },
 };
 
-function tPSquare(xPosition, yPosition, size, rotation = 1) {
+function drawSquare(xPosition, yPosition, lengthOfSide) {
+  const numberOfIndexes = 5;
+
+  animation.figureStack.push({
+    numberOfIndexes: numberOfIndexes,
+    figureType: "square",
+    x: xPosition,
+    y: yPosition,
+    calculatePointFromIndex: function (index) {
+      const origin = { x: xPosition, y: yPosition };
+      const size = lengthOfSide;
+      const halfSize = Math.ceil(size * 0.5);
+
+      switch (index) {
+        case 1:
+          return { x: origin.x + halfSize, y: origin.y - halfSize };
+        case 2:
+          return { x: origin.x + halfSize, y: origin.y + halfSize };
+        case 3:
+          return { x: origin.x - halfSize, y: origin.y + halfSize };
+        default:
+          return { x: origin.x - halfSize, y: origin.y - halfSize };
+      }
+    },
+  });
+}
+
+function drawCircle(xPosition, yPosition, radius, precision = 36) {
+  animation.figureStack.push({
+    numberOfIndexes: precision + 1,
+    figureType: "circle",
+    x: xPosition,
+    y: yPosition,
+    calculatePointFromIndex: function (index) {
+      const origin = { x: xPosition, y: yPosition };
+      const r = radius;
+      const stepSize = 360 / precision;
+      const step = (Math.PI / 180) * stepSize;
+
+      return {
+        x: Math.ceil(Math.cos(index * step) * r) + origin.x,
+        y: Math.ceil(Math.sin(index * step) * r) + origin.y,
+      };
+    },
+  });
+}
+
+//function tPSquare(xPosition, yPosition, size, rotation = 1) {
+//  this.origin = { x: xPosition, y: yPosition };
+//  this.size = size;
+//  this.rotation = rotation;
+//  this.numberOfIndexes = 5;
+//
+//  animation.figureNumberOfIndexes = this.numberOfIndexes;
+//
+//  const halfSize = this.size * 0.5;
+//
+//  this.calculatePointFromIndex = (index) => {
+//    switch (index) {
+//      case 1:
+//        return { x: this.origin.x + halfSize, y: this.origin.y - halfSize };
+//      case 2:
+//        return { x: this.origin.x + halfSize, y: this.origin.y + halfSize };
+//      case 3:
+//        return { x: this.origin.x - halfSize, y: this.origin.y + halfSize };
+//      default:
+//        return { x: this.origin.x - halfSize, y: this.origin.y - halfSize };
+//    }
+//  };
+//}
+/*
+function tPSquare(xPosition, yPosition, size, rotation = 90) {
   this.origin = { x: xPosition, y: yPosition };
   this.size = size;
   this.rotation = rotation;
@@ -34,22 +107,69 @@ function tPSquare(xPosition, yPosition, size, rotation = 1) {
 
   animation.figureNumberOfIndexes = this.numberOfIndexes;
 
+  let stepSize = 360 / rotation;
+  let step = (Math.PI / 180) * stepSize;
+
   const halfSize = this.size * 0.5;
 
   this.calculatePointFromIndex = (index) => {
     switch (index) {
       case 1:
-        return { x: this.origin.x + halfSize, y: this.origin.y - halfSize };
+        return {
+          x:
+            this.origin.x +
+            halfSize +
+            Math.round(Math.cos(step) * halfSize) -
+            Math.round(Math.sin(step) * halfSize),
+          y:
+            this.origin.y -
+            halfSize +
+            Math.round(Math.sin(step) * halfSize) +
+            Math.round(Math.cos(step) * halfSize),
+        };
       case 2:
-        return { x: this.origin.x + halfSize, y: this.origin.y + halfSize };
+        return {
+          x:
+            this.origin.x +
+            halfSize +
+            Math.round(Math.cos(step) * halfSize) -
+            Math.round(Math.sin(step) * halfSize),
+          y:
+            this.origin.y +
+            halfSize +
+            Math.round(Math.sin(step) * halfSize) +
+            Math.round(Math.cos(step) * halfSize),
+        };
       case 3:
-        return { x: this.origin.x - halfSize, y: this.origin.y + halfSize };
+        return {
+          x:
+            this.origin.x -
+            halfSize +
+            Math.round(Math.cos(step) * halfSize) -
+            Math.round(Math.sin(step) * halfSize),
+          y:
+            this.origin.y +
+            halfSize +
+            Math.round(Math.sin(step) * halfSize) +
+            Math.round(Math.sin(step) * halfSize),
+        };
       default:
-        return { x: this.origin.x - halfSize, y: this.origin.y - halfSize };
+        return {
+          x:
+            this.origin.x -
+            halfSize +
+            Math.round(Math.cos(step) * halfSize) -
+            Math.round(Math.sin(step) * halfSize),
+          y:
+            this.origin.y -
+            halfSize +
+            Math.round(Math.sin(step) * halfSize) +
+            Math.round(Math.sin(step) * halfSize),
+        };
     }
   };
 }
-
+*/
 function tPCircle(xPosition, yPosition, radius, fidelity = 36) {
   this.origin = { x: xPosition, y: yPosition };
   this.radius = radius;
@@ -87,20 +207,20 @@ const bresenham = {
   dy: 0,
 };
 
-function makeSquare(position, sideLength) {
-  const sideLengthEvenizer = (sideL) => (sideL % 2 === 0 ? sideL : sideL + 1);
-
-  const furtherByHalf = position + sideLengthEvenizer(sideLength) / 2;
-  const closerByHalf = position - sideLengthEvenizer(sideLength) / 2;
-
-  return [
-    { x: closerByHalf, y: closerByHalf },
-    { x: furtherByHalf, y: closerByHalf },
-    { x: furtherByHalf, y: furtherByHalf },
-    { x: closerByHalf, y: furtherByHalf },
-    { x: closerByHalf, y: closerByHalf },
-  ];
-}
+// function makeSquare(position, sideLength) {
+//   const sideLengthEvenizer = (sideL) => (sideL % 2 === 0 ? sideL : sideL + 1);
+//
+//   const furtherByHalf = position + sideLengthEvenizer(sideLength) / 2;
+//   const closerByHalf = position - sideLengthEvenizer(sideLength) / 2;
+//
+//   return [
+//     { x: closerByHalf, y: closerByHalf },
+//     { x: furtherByHalf, y: closerByHalf },
+//     { x: furtherByHalf, y: furtherByHalf },
+//     { x: closerByHalf, y: furtherByHalf },
+//     { x: closerByHalf, y: closerByHalf },
+//   ];
+// }
 
 function main() {
   const canvas = document.getElementById("base");
@@ -121,6 +241,18 @@ function main() {
     window.requestAnimationFrame((t) => mainLoop(t));
   }
 }
+//animation.figureStack.push(new tPSquare(200, 200, 100));
+//drawCircle(display.canvasWidth / 2, display.canvasHeight / 2, 250);
+
+function onStartup() {
+  drawCircle(400, 270, 100);
+  drawCircle(240, 220, 100);
+  //drawSquare(200, 200, 100);
+  //drawSquare(300, 100, 200);
+  setNewTargetPoint();
+  checkFigureStack();
+  setupBresenhamForPoint();
+}
 
 function turnStepperX() {
   machine.currentPosition.x += machine.direction.x * animation.stepSize;
@@ -129,28 +261,29 @@ function turnStepperX() {
 function turnStepperY() {
   machine.currentPosition.y += machine.direction.y * animation.stepSize;
 }
+//    new tPCircle(200, 100, 50),
+//    new tPCircle(200, 300, 50),
+//    new tPCircle(100, 200, 50),
+//    new tPCircle(300, 200, 50),
+//    new tPSquare(400, 400, 200)  //animation.figureStack.push(
+//  new tPCircle(display.canvasWidth / 2, display.canvasHeight / 2, 250)
+//);
 
-function onStartup() {
-  animation.figureStack.push(
-    new tPSquare(200, 200, 100),
-    new tPCircle(200, 100, 50),
-    new tPCircle(200, 300, 50),
-    new tPCircle(100, 200, 50),
-    new tPCircle(300, 200, 50)
-  );
-  animation.figureStack.push(new tPCircle(200, 200, 50));
-
-  setNewTargetPoint();
-
-  console.log(animation.targetPoint);
-
-  checkFigureStack();
-
-  setupBresenhamForPoint();
-}
+//  console.log(
+//    "x posisjon:",
+//    machine.currentPosition.x,
+//    "y-posisjon:",
+//    machine.currentPosition.y,
+//    "nåværende punkt index:",
+//    animation.targetPointIndex,
+//    "nåværende figur index:",
+//    animation.figureIndex
+//  );
 
 function checkFigureStack() {
   animation.running = animation.figureStack.length > 0;
+  animation.figureNumberOfIndexes =
+    animation.figureStack[animation.figureIndex].numberOfIndexes;
 }
 
 function mainLoop(timeStamp) {
@@ -158,12 +291,17 @@ function mainLoop(timeStamp) {
     machine.currentPosition.x === animation.targetPoint.x &&
     machine.currentPosition.y === animation.targetPoint.y
   ) {
+    console.log("update params");
     updateParameters();
   }
 
-  if (animation.running) {
-    if (timeStamp >= animation.pulseInterval) {
+  if (
+    animation.running &&
+    timeStamp - animation.previousTimestamp >= animation.pulseInterval
+  ) {
+    if (animation.pulseHigh === 0) {
       const err2 = 2 * bresenham.err;
+      animation.previousTimestamp = timeStamp;
 
       if (err2 >= bresenham.dy) {
         bresenham.err = bresenham.err + bresenham.dy;
@@ -179,8 +317,11 @@ function mainLoop(timeStamp) {
           turnStepperY();
         }
       }
-      console.log(machine.currentPosition, animation.targetPoint);
+
       drawInFunction();
+      animation.pulseHigh = 1;
+    } else {
+      animation.pulseHigh = 0;
     }
 
     window.requestAnimationFrame((t) => mainLoop(t));
@@ -201,6 +342,8 @@ function updateParameters() {
     if (animation.figureIndex < animation.figureStack.length - 1) {
       animation.targetPointIndex = -1;
       animation.figureIndex++;
+      animation.figureNumberOfIndexes =
+        animation.figureStack[animation.figureIndex].numberOfIndexes;
     } else {
       animation.running = false;
     }
@@ -332,3 +475,5 @@ function verticalLimb() {
 }
 
 main();
+
+export { animation };
